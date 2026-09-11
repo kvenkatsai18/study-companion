@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Companion — AI Learning Partner</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: white;
+        }
+        .header { text-align: center; padding: 30px 20px; }
+        .header h1 { font-size: 2rem; color: #e94560; margin-bottom: 5px; }
+        .header p { color: #a0a0a0; font-size: 0.9rem; }
+        .avatar-container { position: relative; margin: 20px 0; text-align: center; }
+        .avatar {
+            width: 180px; height: 180px;
+            background: linear-gradient(145deg, #2d2d44, #1a1a2e);
+            border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 40px rgba(233, 69, 96, 0.3);
+        }
+        .avatar-face { font-size: 80px; transition: transform 0.3s; }
+        .avatar.listening .avatar-face { animation: pulse 1.5s infinite; }
+        .avatar.speaking .avatar-face { animation: bounce 0.5s infinite; }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        .status { text-align: center; margin-top: 15px; font-size: 0.85rem; color: #a0a0a0; min-height: 20px; }
+        .chat-container { width: 100%; max-width: 600px; flex: 1; display: flex; flex-direction: column; padding: 0 20px; margin-bottom: 20px; }
+        .messages {
+            flex: 1; overflow-y: auto; padding: 15px;
+            background: rgba(255,255,255,0.05); border-radius: 15px;
+            margin-bottom: 15px; min-height: 200px; max-height: 400px;
+        }
+        .message { margin-bottom: 12px; padding: 10px 15px; border-radius: 12px; line-height: 1.5; font-size: 0.95rem; }
+        .message.user { background: #e94560; color: white; margin-left: 40px; border-bottom-right-radius: 2px; }
+        .message.ai { background: rgba(255,255,255,0.1); color: white; margin-right: 40px; border-bottom-left-radius: 2px; }
+        .controls { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .mic-btn {
+            width: 70px; height: 70px; border-radius: 50%; border: none;
+            background: #e94560; color: white; font-size: 28px;
+            cursor: pointer; transition: all 0.3s;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
+        }
+        .mic-btn:hover { transform: scale(1.1); box-shadow: 0 6px 25px rgba(233, 69, 96, 0.6); }
+        .mic-btn.recording { background: #ff1744; animation: recording-pulse 1s infinite; }
+        @keyframes recording-pulse {
+            0%, 100% { box-shadow: 0 4px 20px rgba(255, 23, 68, 0.4); }
+            50% { box-shadow: 0 4px 40px rgba(255, 23, 68, 0.8); }
+        }
+        .text-input-container { width: 100%; display: flex; gap: 10px; margin-top: 15px; }
+        .text-input {
+            flex: 1; padding: 12px 18px; border-radius: 25px;
+            border: 2px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.1); color: white;
+            font-size: 1rem; outline: none; transition: border-color 0.3s;
+        }
+        .text-input::placeholder { color: #888; }
+        .text-input:focus { border-color: #e94560; }
+        .send-btn {
+            padding: 12px 25px; border-radius: 25px; border: none;
+            background: #e94560; color: white; font-size: 1rem;
+            cursor: pointer; transition: all 0.3s;
+        }
+        .send-btn:hover { background: #ff6b6b; }
+        .clear-btn {
+            padding: 10px 20px; border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: transparent; color: #888; font-size: 0.85rem;
+            cursor: pointer; transition: all 0.3s; margin-top: 10px;
+        }
+        .clear-btn:hover { border-color: #e94560; color: #e94560; }
+        .info { text-align: center; padding: 20px; font-size: 0.8rem; color: #555; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Study Companion</h1>
+        <p>Your AI learning partner — voice-powered, always available</p>
+    </div>
+
+    <div class="avatar-container">
+        <div class="avatar" id="avatar">
+            <span class="avatar-face">🤖</span>
+        </div>
+        <p class="status" id="status">Click the microphone and start talking</p>
+    </div>
+
+    <div class="chat-container">
+        <div class="messages" id="messages">
+            <div class="message ai">
+                Hi! I'm your AI study companion. Ask me anything — about your studies, research, exam prep, or just about the world. You can speak or type!
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="mic-btn" id="micBtn" title="Click and speak">🎤</button>
+        </div>
+
+        <div class="text-input-container">
+            <input type="text" class="text-input" id="textInput" placeholder="Or type your question here...">
+            <button class="send-btn" id="sendBtn">Send</button>
+        </div>
+
+        <div style="text-align: center;">
+            <button class="clear-btn" id="clearBtn">Clear conversation</button>
+        </div>
+    </div>
+
+    <div class="info">Powered by MiniMax AI • Voice by Edge TTS</div>
+
+    <script>
+        const micBtn = document.getElementById('micBtn');
+        const avatar = document.getElementById('avatar');
+        const status = document.getElementById('status');
+        const messages = document.getElementById('messages');
+        const textInput = document.getElementById('textInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const clearBtn = document.getElementById('clearBtn');
+
+        let recognition;
+        let isRecording = false;
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                isRecording = true;
+                micBtn.classList.add('recording');
+                avatar.classList.add('listening');
+                avatar.classList.remove('speaking');
+                status.textContent = 'Listening...';
+            };
+
+            recognition.onresult = async (event) => {
+                const transcript = Array.from(event.results)
+                    .map(result => result[0].transcript).join('');
+                if (event.results[0].isFinal) {
+                    const userText = transcript.trim();
+                    if (userText) {
+                        addMessage(userText, 'user');
+                        status.textContent = 'Thinking...';
+                        await sendToAI(userText);
+                    }
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech error:', event.error);
+                stopRecording();
+                status.textContent = 'Could not hear. Try again or type.';
+            };
+
+            recognition.onend = () => { stopRecording(); };
+        }
+
+        function stopRecording() {
+            isRecording = false;
+            micBtn.classList.remove('recording');
+            avatar.classList.remove('listening');
+        }
+
+        micBtn.addEventListener('click', () => {
+            if (recognition) {
+                try { recognition.start(); } catch(e) { console.error(e); }
+            }
+        });
+
+        sendBtn.addEventListener('click', sendTextMessage);
+        textInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendTextMessage();
+        });
+
+        async function sendTextMessage() {
+            const text = textInput.value.trim();
+            if (!text) return;
+            addMessage(text, 'user');
+            textInput.value = '';
+            status.textContent = 'Thinking...';
+            await sendToAI(text);
+        }
+
+        async function sendToAI(text) {
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                });
+                const data = await response.json();
+                const aiText = data.response || "Sorry, I didn't get a response.";
+                addMessage(aiText, 'ai');
+                await speakText(aiText);
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage("I'm having trouble connecting. Make sure the Flask server is running.", 'ai');
+                status.textContent = 'Error';
+            }
+        }
+
+        async function speakText(text) {
+            try {
+                avatar.classList.add('speaking');
+                status.textContent = 'Speaking...';
+                const cleanText = text.replace(/[*\#`]/g, '').substring(0, 1500);
+                const response = await fetch('/api/speak', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: cleanText })
+                });
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    const audio = new Audio(url);
+                    audio.onended = () => {
+                        avatar.classList.remove('speaking');
+                        status.textContent = 'Click the microphone and start talking';
+                    };
+                    await audio.play();
+                } else {
+                    avatar.classList.remove('speaking');
+                    status.textContent = 'Click the microphone and start talking';
+                }
+            } catch (error) {
+                console.error('Speech error:', error);
+                avatar.classList.remove('speaking');
+                status.textContent = 'Click the microphone and start talking';
+            }
+        }
+
+        function addMessage(text, type) {
+            const div = document.createElement('div');
+            div.className = `message ${type}`;
+            div.textContent = text;
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        clearBtn.addEventListener('click', async () => {
+            try {
+                await fetch('/api/clear', { method: 'POST' });
+                messages.innerHTML = '<div class="message ai">Conversation cleared. What would you like to learn about?</div>';
+            } catch(e) { console.error(e); }
+        });
+    </script>
+</body>
+</html>
