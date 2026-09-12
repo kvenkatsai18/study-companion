@@ -71,16 +71,38 @@ def get_ai_response(messages: list) -> str:
     }
 
     print(f"[DEBUG] Sending request to MiniMax API...")
+    print(f"[DEBUG] Payload model: {payload['model']}")
+    print(f"[DEBUG] Payload messages count: {len(messages)}")
     try:
         response = httpx.post(MINIMAX_URL, headers=headers, json=payload, timeout=60.0)
         print(f"[DEBUG] Response status: {response.status_code}")
+        print(f"[DEBUG] Raw response text: {response.text}")
         response.raise_for_status()
         data = response.json()
-        print(f"[DEBUG] Response data: {str(data)[:500]}")
+        print(f"[DEBUG] Parsed JSON: {str(data)}")
         choices = data.get("choices", [])
         if choices:
             return choices[0]["message"]["content"]
-        return "Sorry, I couldn't generate a response."
+        # Try different model if choices empty
+        if "model" in str(data).lower():
+            print(f"[DEBUG] Trying fallback model...")
+            payload["model"] = "MiniMax-Text"
+            response2 = httpx.post(MINIMAX_URL, headers=headers, json=payload, timeout=60.0)
+            print(f"[DEBUG] Fallback response: {response2.text}")
+            data2 = response2.json()
+            choices2 = data2.get("choices", [])
+            if choices2:
+                return choices2[0]["message"]["content"]
+        return f"MiniMax returned empty choices. Raw: {str(data)[:300]}"
+    except httpx.TimeoutException:
+        print("[DEBUG] Request timed out")
+        return "Request timed out. Please try again."
+    except httpx.HTTPStatusError as e:
+        print(f"[DEBUG] HTTP error: {e.response.status_code} - {e.response.text[:500]}")
+        return f"API error {e.response.status_code}: {e.response.text[:200]}"
+    except Exception as e:
+        print(f"[DEBUG] Exception: {type(e).__name__}: {str(e)}")
+        return f"Error: {str(e)}"
     except httpx.TimeoutException:
         print("[DEBUG] Request timed out")
         return "Request timed out. Please try again."
