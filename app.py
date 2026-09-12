@@ -52,8 +52,11 @@ async def text_to_speech(text: str) -> bytes:
 
 
 def get_ai_response(messages: list) -> str:
+    print(f"[DEBUG] MINIMAX_API_KEY present: {bool(MINIMAX_API_KEY)}")
+    print(f"[DEBUG] MINIMAX_API_KEY length: {len(MINIMAX_API_KEY) if MINIMAX_API_KEY else 0}")
+    
     if not MINIMAX_API_KEY:
-        return "MiniMax API key not configured. Please add MINIMAX_API_KEY to your .env file."
+        return "Error: MiniMax API key is not configured on the server."
 
     headers = {
         "Authorization": f"Bearer {MINIMAX_API_KEY}",
@@ -67,19 +70,25 @@ def get_ai_response(messages: list) -> str:
         "temperature": 0.7
     }
 
+    print(f"[DEBUG] Sending request to MiniMax API...")
     try:
         response = httpx.post(MINIMAX_URL, headers=headers, json=payload, timeout=60.0)
+        print(f"[DEBUG] Response status: {response.status_code}")
         response.raise_for_status()
         data = response.json()
+        print(f"[DEBUG] Response data: {str(data)[:500]}")
         choices = data.get("choices", [])
         if choices:
             return choices[0]["message"]["content"]
         return "Sorry, I couldn't generate a response."
     except httpx.TimeoutException:
+        print("[DEBUG] Request timed out")
         return "Request timed out. Please try again."
     except httpx.HTTPStatusError as e:
-        return f"API error: {e.response.status_code}"
+        print(f"[DEBUG] HTTP error: {e.response.status_code} - {e.response.text[:500]}")
+        return f"API error {e.response.status_code}: {e.response.text[:200]}"
     except Exception as e:
+        print(f"[DEBUG] Exception: {str(e)}")
         return f"Error: {str(e)}"
 
 
@@ -90,6 +99,7 @@ def index():
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
+    print(f"[DEBUG] /api/chat called. ENV KEY: {bool(os.environ.get('MINIMAX_API_KEY'))}")
     data = request.get_json()
     user_message = data.get("message", "").strip()
     if not user_message:
