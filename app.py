@@ -15,8 +15,9 @@ app = Flask(__name__)
 
 # Config
 MINIMAX_API_KEY = os.environ.get("MINIMAX_API_KEY", "")
-MINIMAX_GROUP_ID = os.environ.get("MINIMAX_GROUP_ID", "2040366535372976713")
-MINIMAX_URL = "https://api.minimax.chat/v1/text/chatcompletion_v2"
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODEL = "groq/compound-mini"
+OPENAI_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 VOICE = "en-US-AriaNeural"
 SYSTEM_PROMPT = """You are a friendly, knowledgeable AI study companion. You help students learn, research, and practice. You speak in a warm, encouraging tone. You can explain concepts clearly, help with exam prep, create practice questions, and assist with research. Keep responses conversational but informative. If you don't know something, say so honestly."""
@@ -64,45 +65,30 @@ def get_ai_response(messages: list) -> str:
     }
 
     payload = {
-        "model": "MiniMax-Text-01",
+        "model": GROQ_MODEL,
         "messages": messages,
         "max_tokens": 1024,
         "temperature": 0.7
     }
 
-    print(f"[DEBUG] Sending request to MiniMax API...")
-    print(f"[DEBUG] Payload model: {payload['model']}")
-    print(f"[DEBUG] Payload messages count: {len(messages)}")
     try:
-        response = httpx.post(MINIMAX_URL, headers=headers, json=payload, timeout=60.0)
-        print(f"[DEBUG] Response status: {response.status_code}")
-        print(f"[DEBUG] Raw response text: {response.text}")
+        response = httpx.post(GROQ_URL, headers=headers, json=payload, timeout=60.0)
+        # Log raw response for debugging
+        import sys
+        sys.stderr.write(f"[MINIMAX_RAW] Status={response.status_code} Body={response.text}\n")
+        sys.stderr.flush()
         response.raise_for_status()
         data = response.json()
-        print(f"[DEBUG] Parsed JSON: {str(data)}")
         choices = data.get("choices", [])
         if choices:
             return choices[0]["message"]["content"]
-        # Try different model if choices empty
-        if "model" in str(data).lower():
-            print(f"[DEBUG] Trying fallback model...")
-            payload["model"] = "MiniMax-Text"
-            response2 = httpx.post(MINIMAX_URL, headers=headers, json=payload, timeout=60.0)
-            print(f"[DEBUG] Fallback response: {response2.text}")
-            data2 = response2.json()
-            choices2 = data2.get("choices", [])
-            if choices2:
-                return choices2[0]["message"]["content"]
-        return f"MiniMax returned empty choices. Raw: {str(data)[:300]}"
+        return f"MiniMax empty response. Raw: {response.text[:500]}"
     except httpx.TimeoutException:
-        print("[DEBUG] Request timed out")
         return "Request timed out. Please try again."
     except httpx.HTTPStatusError as e:
-        print(f"[DEBUG] HTTP error: {e.response.status_code} - {e.response.text[:500]}")
-        return f"API error {e.response.status_code}: {e.response.text[:200]}"
+        return f"MiniMax API error {e.response.status_code}: {e.response.text[:300]}"
     except Exception as e:
-        print(f"[DEBUG] Exception: {type(e).__name__}: {str(e)}")
-        return f"Error: {str(e)}"
+        return f"Error: {type(e).__name__}: {str(e)}"
     except httpx.TimeoutException:
         print("[DEBUG] Request timed out")
         return "Request timed out. Please try again."
