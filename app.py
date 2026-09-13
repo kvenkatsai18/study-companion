@@ -14,7 +14,7 @@ import json
 app = Flask(__name__)
 
 # Config
-MINIMAX_API_KEY = os.environ.get("MINIMAX_API_KEY", "")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODEL = "groq/compound-mini"
 OPENAI_URL = "https://api.groq.com/openai/v1/chat/completions"
@@ -53,14 +53,14 @@ async def text_to_speech(text: str) -> bytes:
 
 
 def get_ai_response(messages: list) -> str:
-    print(f"[DEBUG] MINIMAX_API_KEY present: {bool(MINIMAX_API_KEY)}")
-    print(f"[DEBUG] MINIMAX_API_KEY length: {len(MINIMAX_API_KEY) if MINIMAX_API_KEY else 0}")
+    print(f"[DEBUG] GROQ_API_KEY present: {bool(GROQ_API_KEY)}")
+    print(f"[DEBUG] GROQ_API_KEY length: {len(GROQ_API_KEY) if GROQ_API_KEY else 0}")
     
-    if not MINIMAX_API_KEY:
-        return "Error: MiniMax API key is not configured on the server."
+    if not GROQ_API_KEY:
+        return "Error: Groq API key is not configured on the server."
 
     headers = {
-        "Authorization": f"Bearer {MINIMAX_API_KEY}",
+        "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json"
     }
 
