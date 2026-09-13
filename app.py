@@ -1,6 +1,6 @@
 """
 Study Companion — AI Learning Partner
-Flask backend with voice I/O, MiniMax AI, and animated avatar
+Flask backend with voice I/O, Groq AI, and animated avatar
 """
 
 import os
@@ -17,7 +17,6 @@ app = Flask(__name__)
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODEL = "groq/compound-mini"
-OPENAI_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 VOICE = "en-US-AriaNeural"
 SYSTEM_PROMPT = """You are a friendly, knowledgeable AI study companion. You help students learn, research, and practice. You speak in a warm, encouraging tone. You can explain concepts clearly, help with exam prep, create practice questions, and assist with research. Keep responses conversational but informative. If you don't know something, say so honestly."""
@@ -53,9 +52,6 @@ async def text_to_speech(text: str) -> bytes:
 
 
 def get_ai_response(messages: list) -> str:
-    print(f"[DEBUG] GROQ_API_KEY present: {bool(GROQ_API_KEY)}")
-    print(f"[DEBUG] GROQ_API_KEY length: {len(GROQ_API_KEY) if GROQ_API_KEY else 0}")
-    
     if not GROQ_API_KEY:
         return "Error: Groq API key is not configured on the server."
 
@@ -73,31 +69,18 @@ def get_ai_response(messages: list) -> str:
 
     try:
         response = httpx.post(GROQ_URL, headers=headers, json=payload, timeout=60.0)
-        # Log raw response for debugging
-        import sys
-        sys.stderr.write(f"[MINIMAX_RAW] Status={response.status_code} Body={response.text}\n")
-        sys.stderr.flush()
         response.raise_for_status()
         data = response.json()
         choices = data.get("choices", [])
         if choices:
             return choices[0]["message"]["content"]
-        return f"MiniMax empty response. Raw: {response.text[:500]}"
+        return f"Groq empty response. Raw: {response.text[:500]}"
     except httpx.TimeoutException:
         return "Request timed out. Please try again."
     except httpx.HTTPStatusError as e:
-        return f"MiniMax API error {e.response.status_code}: {e.response.text[:300]}"
+        return f"Groq API error {e.response.status_code}: {e.response.text[:300]}"
     except Exception as e:
         return f"Error: {type(e).__name__}: {str(e)}"
-    except httpx.TimeoutException:
-        print("[DEBUG] Request timed out")
-        return "Request timed out. Please try again."
-    except httpx.HTTPStatusError as e:
-        print(f"[DEBUG] HTTP error: {e.response.status_code} - {e.response.text[:500]}")
-        return f"API error {e.response.status_code}: {e.response.text[:200]}"
-    except Exception as e:
-        print(f"[DEBUG] Exception: {str(e)}")
-        return f"Error: {str(e)}"
 
 
 @app.route("/")
@@ -107,7 +90,6 @@ def index():
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
-    print(f"[DEBUG] /api/chat called. ENV KEY: {bool(os.environ.get('MINIMAX_API_KEY'))}")
     data = request.get_json()
     user_message = data.get("message", "").strip()
     if not user_message:
@@ -154,5 +136,5 @@ def clear_history():
 
 if __name__ == "__main__":
     print("Study Companion starting...")
-    print(f"MiniMax API: {'Configured' if MINIMAX_API_KEY else 'NOT CONFIGURED'}")
+    print(f"Groq API: {'Configured' if GROQ_API_KEY else 'NOT CONFIGURED'}")
     app.run(host="0.0.0.0", port=5000, debug=True)
